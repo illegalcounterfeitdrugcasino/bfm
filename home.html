@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="WEC">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" href="/apple-touch-icon.png">
+    <title>BitFlash Mining Portal Pro - v4.0 Quantum</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(145deg, #1e272e 0%, #485460 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hidden {
+            display: none;
+        }
+        .grid {
+            display: grid;
+            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+        .server-option, .feature-card, .dev-tool {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .server-option:hover, .feature-card:hover, .dev-tool:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .console {
+            background: #0f1419;
+            color: #00ff00;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        .sidebar {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: left 0.3s ease;
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .tab {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .btn {
+            padding: 12px 24px;
+            margin: 5px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .btn:hover {
+            background: linear-gradient(90deg, #2980b9, #1b5e7d);
+            transform: scale(1.05);
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ecf0f1;
+        }
+        .custom-server-config {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            display: none;
+            z-index: 3000;
+        }
+        .modal.active {
+            display: block;
+        }
+        .chart {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background: #e74c3c;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div class="card" id="loginForm">
+            <h2>BitFlash Mining Portal Pro v4.0 Quantum</h2>
+            <input type="text" id="username" placeholder="BitFlash Username">
+            <input type="password" id="password" placeholder="Password">
+            <input type="number" id="initialBalance" placeholder="Current balance in BTC" step="0.0001">
+            <div class="grid">
+                <button class="btn" onclick="login()">Login</button>
+                <button class="btn" onclick="show2FAModal()">Enable 2FA</button>
+            </div>
+            <p id="loginError" style="color: #e74c3c;"></p>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="card hidden" id="dashboard">
+            <div class="stats-bar">
+                <div>Balance: <span id="btcBalance">0</span> BTC</div>
+                <div>Hash Rate: <span id="hashRate">0</span> MH/s</div>
+                <div>Profit: <span id="profit">0</span> BTC/day</div>
+                <div>Boost: <span id="boostPoints">0</span> pts</div>
+                <div>Energy: <span id="energyUsage">0</span> kW</div>
+            </div>
+
+            <!-- Server Mining -->
+            <h3>Server Mining</h3>
+            <div class="grid">
+                <div class="server-option">
+                    <h4>Basic Server - ~0.002 BTC/day</h4>
+                    <p>10 MH/s | 2 CPUs | 8GB RAM | Cost: ~0.0005 BTC/day</p>
+                    <button class="btn" onclick="startServer('basic')">Start</button>
+                </div>
+                <div class="server-option">
+                    <h4>Pro Server - ~0.008 BTC/day</h4>
+                    <p>50 MH/s | 8 CPUs | 32GB RAM | Cost: ~0.002 BTC/day</p>
+                    <button class="btn" onclick="startServer('pro')">Start</button>
+                </div>
+                <div class="server-option">
+                    <h4>Elite Server - ~0.02 BTC/day</h4>
+                    <p>100 MH/s | 16 CPUs | 64GB RAM | Cost: ~0.005 BTC/day</p>
+                    <button class="btn" onclick="startServer('elite')">Start</button>
+                </div>
+                <div class="server-option">
+                    <h4>Custom Server</h4>
+                    <div class="custom-server-config">
+                        <label>CPUs (1-128):</label>
+                        <input type="number" id="customCpus" min="1" max="128" value="16">
+                        <label>RAM (GB, 8-512):</label>
+                        <input type="number" id="customRam" min="8" max="512" value="64">
+                        <label>Hash Rate (MH/s, 10-1000):</label>
+                        <input type="number" id="customHash" min="10" max="1000" value="100">
+                        <label>GPUs (0-32):</label>
+                        <input type="number" id="customGpus" min="0" max="32" value="0">
+                        <label>Storage (TB, 1-64):</label>
+                        <input type="number" id="customStorage" min="1" max="64" value="1">
+                        <p>Earnings: <span id="customEarnings">~0.02</span> BTC/day</p>
+                        <p>Cost: <span id="customCost">~0.005</span> BTC/day</p>
+                    </div>
+                    <button class="btn" onclick="startCustomServer()">Start</button>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <h3>Features</h3>
+            <div class="grid">
+                <div class="feature-card">
+                    <h4>On-Device Mining</h4>
+                    <select id="chipSelect">
+                        <option value="m1">M1 (15 MH/s)</option>
+                        <option value="m2">M2 (25 MH/s)</option>
+                        <option value="m3">M3 (35 MH/s)</option>
+                        <option value="m4">M4 (50 MH/s)</option>
+                    </select>
+                    <button class="btn" onclick="startDeviceMining()">Start</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Boost Activator</h4>
+                    <p>Cost: 100 Boost Points</p>
+                    <button class="btn" onclick="activateBoost()">Activate (2x 5min)</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Pool Manager</h4>
+                    <select id="poolSelect">
+                        <option value="bf">BitFlash Pool</option>
+                        <option value="mp">MegaPool</option>
+                        <option value="cp">CryptoPool</option>
+                    </select>
+                    <button class="btn" onclick="switchPool()">Switch</button>
+                    <button class="btn" onclick="addCustomPool()">Add Custom</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Overclock Manager</h4>
+                    <input type="range" id="overclock" min="0" max="250" value="100">
+                    <p>Risk: <span id="overclockRisk">Low</span></p>
+                    <button class="btn" onclick="applyOverclock()">Apply</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Performance Dashboard</h4>
+                    <p>Uptime: <span id="uptime">0</span>s</p>
+                    <p>Temperature: <span id="temperature">35</span>°C</p>
+                    <button class="btn" onclick="resetMonitor()">Reset</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Market Predictor</h4>
+                    <p>BTC Trend: <span id="marketTrend">Neutral</span></p>
+                    <button class="btn" onclick="predictMarket()">Analyze</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Energy Optimizer</h4>
+                    <p>Mode: <select id="energyMode">
+                        <option value="eco">Eco</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="max">Max</option>
+                    </select></p>
+                    <button class="btn" onclick="optimizeEnergy()">Optimize</button>
+                </div>
+                <div class="feature-card">
+                    <h4>Multi-Mining</h4>
+                    <select id="coinSelect">
+                        <option value="btc">BTC</option>
+                        <option value="eth">ETH</option>
+                        <option value="xmr">XMR</option>
+                    </select>
+                    <button class="btn" onclick="switchCoin()">Switch Coin</button>
+                </div>
+            </div>
+
+            <!-- Console and Controls -->
+            <div class="grid">
+                <div>
+                    <h3>Mining Console</h3>
+                    <div class="console" id="console"></div>
+                </div>
+                <div>
+                    <h3>Controls</h3>
+                    <button class="btn" onclick="stopMining()">Stop Mining</button>
+                    <button class="btn" onclick="analyzeNetwork()">Network Analysis</button>
+                    <button class="btn" onclick="runDiagnostics()">Diagnostics</button>
+                    <button class="btn" onclick="showStatsChart()">Stats Chart</button>
+                    <input type="text" id="customCommand" placeholder="Custom Command">
+                    <button class="btn" onclick="executeCommand()">Execute</button>
+                </div>
+            </div>
+
+            <!-- Developer Tools -->
+            <h3>Developer Tools</h3>
+            <div class="grid">
+                <div class="dev-tool">
+                    <h4>API Tester</h4>
+                    <input type="text" id="apiEndpoint" placeholder="Endpoint URL">
+                    <button class="btn" onclick="testApi()">Test</button>
+                </div>
+                <div class="dev-tool">
+                    <h4>Script Injector</h4>
+                    <textarea id="scriptInput" rows="3" placeholder="Enter JS code"></textarea>
+                    <button class="btn" onclick="injectScript()">Inject</button>
+                </div>
+                <div class="dev-tool">
+                    <h4>Stress Test</h4>
+                    <p>Intensity: <input type="number" id="stressLevel" min="1" max="10" value="5"></p>
+                    <button class="btn" onclick="runStressTest()">Run</button>
+                </div>
+            </div>
+
+            <!-- Sidebar Toggle -->
+            <button class="btn" onclick="toggleSidebar()" style="position: fixed; top: 20px; right: 20px;">⚙️</button>
+        </div>
+
+        <!-- Sidebar (Settings) -->
+        <div class="sidebar" id="sidebar">
+            <button class="btn" onclick="toggleSidebar()" style="float: right;">✖</button>
+            <h2>Settings - v4.0 Quantum</h2>
+
+            <div class="tab">
+                <h3>General</h3>
+                <label>Theme:</label>
+                <select id="theme">
+                    <option value="quantum">Quantum</option>
+                    <option value="dark">Dark</option>
+                    <option value="neon">Neon</option>
+                </select>
+                <label>Sound Alerts:</label>
+                <input type="checkbox" id="soundAlerts">
+                <label>Auto-Update:</label>
+                <input type="checkbox" id="autoUpdate" checked>
+                <label>UI Animations:</label>
+                <input type="checkbox" id="animations" checked>
+            </div>
+
+            <div class="tab">
+                <h3>Mining</h3>
+                <label>Pool URL:</label>
+                <input type="text" id="poolUrl" value="stratum+tcp://pool.bitflash.com:3333">
+                <label>Worker Name:</label>
+                <input type="text" id="workerName" value="worker1">
+                <label>Threads:</label>
+                <input type="number" id="threads" value="4" min="1" max="64">
+                <label>Block Target:</label>
+                <select id="blockTarget">
+                    <option value="fast">Fast Blocks</option>
+                    <option value="stable">Stable Blocks</option>
+                    <option value="large">Large Blocks</option>
+                </select>
+                <label>Failover Pool:</label>
+                <input type="text" id="failoverPool" placeholder="Backup pool URL">
+            </div>
+
+            <div class="tab">
+                <h3>Developer</h3>
+                <label>Debug Mode:</label>
+                <input type="checkbox" id="debugMode">
+                <label>API Key:</label>
+                <input type="text" id="apiKey" placeholder="Enter API Key">
+                <label>Log Level:</label>
+                <select id="logLevel">
+                    <option value="info">Info</option>
+                    <option value="debug">Debug</option>
+                    <option value="error">Error</option>
+                    <option value="verbose">Verbose</option>
+                </select>
+                <label>Custom Config:</label>
+                <textarea id="customConfig" rows="6">{ "fanSpeed": 75, "tempLimit": 85, "apiThrottle": 1000 }</textarea>
+                <label>CPU Usage (%):</label>
+                <input type="range" id="cpuUsage" min="10" max="100" value="50">
+                <label>GPU Usage (%):</label>
+                <input type="range" id="gpuUsage" min="10" max="100" value="50">
+                <label>Memory Overclock (MHz):</label>
+                <input type="number" id="memOverclock" min="0" max="2000" value="0">
+            </div>
+
+            <div class="tab">
+                <h3>Network</h3>
+                <label>Proxy:</label>
+                <input type="text" id="proxy" placeholder="http://proxy:port">
+                <label>Bandwidth Limit (MB/s):</label>
+                <input type="number" id="bandwidth" value="10">
+                <label>Ping Test:</label>
+                <button class="btn" onclick="testPing()">Test</button>
+                <label>Connection Timeout (s):</label>
+                <input type="number" id="timeout" value="30">
+            </div>
+
+            <div class="tab">
+                <h3>Security</h3>
+                <label>2FA:</label>
+                <input type="checkbox" id="twoFactor">
+                <label>IP Whitelist:</label>
+                <input type="text" id="ipWhitelist" placeholder="192.168.1.1">
+                <label>Session Timeout (min):</label>
+                <input type="number" id="sessionTimeout" value="60">
+                <label>Encryption Level:</label>
+                <select id="encryption">
+                    <option value="standard">Standard</option>
+                    <option value="high">High</option>
+                    <option value="quantum">Quantum-Resistant</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div class="modal" id="twoFAModal">
+            <h3>Enable 2FA</h3>
+            <input type="text" id="twoFACode" placeholder="Enter 2FA Code">
+            <button class="btn" onclick="verify2FA()">Verify</button>
+            <button class="btn" onclick="hideModal('twoFAModal')">Cancel</button>
+        </div>
+
+        <div class="modal" id="statsModal">
+            <h3>Mining Statistics</h3>
+            <div class="chart" id="statsChart"></div>
+            <button class="btn" onclick="hideModal('statsModal')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let balance = 0;
+        let hashRate = 0;
+        let profit = 0;
+        let boostPoints = 0;
+        let energyUsage = 0;
+        let miningInterval = null;
+        let consoleMessages = [];
+        let boostMultiplier = 1;
+        let uptime = 0;
+        let temperature = 35;
+        let costMultiplier = 1;
+        let currentCoin = 'btc';
+        let miningStats = [];
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const initialBalance = parseFloat(document.getElementById('initialBalance').value) || 0;
+            if (username && password) {
+                balance = initialBalance;
+                updateDashboard();
+                switchView();
+            } else {
+                document.getElementById('loginError').textContent = 'Please fill all fields';
+            }
+        }
+
+        function switchView() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+        }
+
+        function updateDashboard() {
+            document.getElementById('btcBalance').textContent = balance.toFixed(8);
+            document.getElementById('hashRate').textContent = hashRate;
+            document.getElementById('profit').textContent = profit.toFixed(8);
+            document.getElementById('boostPoints').textContent = boostPoints;
+            document.getElementById('energyUsage').textContent = energyUsage.toFixed(2);
+            document.getElementById('uptime').textContent = uptime;
+            document.getElementById('temperature').textContent = temperature;
+        }
+
+        function updateCustomServer() {
+            const cpus = parseInt(document.getElementById('customCpus').value) || 16;
+            const ram = parseInt(document.getElementById('customRam').value) || 64;
+            const hash = parseInt(document.getElementById('customHash').value) || 100;
+            const gpus = parseInt(document.getElementById('customGpus').value) || 0;
+            const storage = parseInt(document.getElementById('customStorage').value) || 1;
+            const earnings = (hash * 0.0002 + gpus * 0.0003) / 24 / 60 / 60;
+            const cost = (cpus * 0.00002 + ram * 0.00001 + hash * 0.00003 + gpus * 0.00005 + storage * 0.000005) / 24 / 60 / 60;
+            document.getElementById('customEarnings').textContent = (earnings * 24 * 60 * 60).toFixed(4);
+            document.getElementById('customCost').textContent = (cost * 24 * 60 * 60).toFixed(4);
+            energyUsage = (cpus * 0.05 + ram * 0.01 + hash * 0.02 + gpus * 0.1) / 1000; // kW
+        }
+
+        function startServer(type) {
+            stopMining();
+            let baseRate, baseCost, hr;
+            switch(type) {
+                case 'basic':
+                    baseRate = 0.002 / 24 / 60 / 60;
+                    baseCost = 0.0005 / 24 / 60 / 60;
+                    hr = 10;
+                    energyUsage = 0.1;
+                    break;
+                case 'pro':
+                    baseRate = 0.008 / 24 / 60 / 60;
+                    baseCost = 0.002 / 24 / 60 / 60;
+                    hr = 50;
+                    energyUsage = 0.5;
+                    break;
+                case 'elite':
+                    baseRate = 0.02 / 24 / 60 / 60;
+                    baseCost = 0.005 / 24 / 60 / 60;
+                    hr = 100;
+                    energyUsage = 1.0;
+                    break;
+            }
+            startMining(baseRate, baseCost, hr, `Server Mining (${type.toUpperCase()})`);
+        }
+
+        function startCustomServer() {
+            stopMining();
+            const cpus = parseInt(document.getElementById('customCpus').value) || 16;
+            const ram = parseInt(document.getElementById('customRam').value) || 64;
+            const hr = parseInt(document.getElementById('customHash').value) || 100;
+            const gpus = parseInt(document.getElementById('customGpus').value) || 0;
+            const storage = parseInt(document.getElementById('customStorage').value) || 1;
+            const baseRate = (hr * 0.0002 + gpus * 0.0003) / 24 / 60 / 60;
+            const baseCost = (cpus * 0.00002 + ram * 0.00001 + hr * 0.00003 + gpus * 0.00005 + storage * 0.000005) / 24 / 60 / 60;
+            energyUsage = (cpus * 0.05 + ram * 0.01 + hr * 0.02 + gpus * 0.1) / 1000;
+            startMining(baseRate, baseCost, hr, `Custom Server (CPUs: ${cpus}, RAM: ${ram}GB, GPUs: ${gpus})`);
+        }
+
+        function startDeviceMining() {
+            stopMining();
+            const chip = document.getElementById('chipSelect').value;
+            let rate, hr;
+            switch(chip) {
+                case 'm1': rate = 0.00015 / 24 / 60 / 60; hr = 15; energyUsage = 0.05; break;
+                case 'm2': rate = 0.00025 / 24 / 60 / 60; hr = 25; energyUsage = 0.07; break;
+                case 'm3': rate = 0.00035 / 24 / 60 / 60; hr = 35; energyUsage = 0.09; break;
+                case 'm4': rate = 0.0005 / 24 / 60 / 60; hr = 50; energyUsage = 0.12; break;
+            }
+            startMining(rate, 0, hr, `Device Mining (${chip.toUpperCase()})`);
+        }
+
+        function startMining(baseRate, baseCost, hr, type) {
+            hashRate = hr;
+            miningInterval = setInterval(() => {
+                costMultiplier = 0.5 + Math.random(); // 0.5x to 1.5x
+                const coinMultiplier = currentCoin === 'btc' ? 1 : (currentCoin === 'eth' ? 0.8 : 0.6);
+                const earnings = baseRate * boostMultiplier * coinMultiplier;
+                const cost = baseCost * costMultiplier;
+                balance += earnings - (baseCost ? cost : 0);
+                profit = (earnings - (baseCost ? cost : 0)) * 24 * 60 * 60;
+                boostPoints += Math.floor(hashRate / 100 / 60);
+                uptime++;
+                temperature += (hashRate * 0.001 + (Math.random() - 0.5) * 0.2);
+                if (temperature > 90) temperature = 90;
+                if (temperature < 30) temperature = 30;
+                miningStats.push({ profit, hashRate, time: Date.now() });
+                if (miningStats.length > 60) miningStats.shift();
+                updateDashboard();
+                logConsole(`Mining ${currentCoin.toUpperCase()}... Hash: ${hashRate} MH/s, Net: ${profit.toFixed(8)} BTC/day, Cost: ${costMultiplier.toFixed(2)}x, Temp: ${temperature.toFixed(1)}°C`);
+            }, 1000);
+            logConsole(`Started ${type} - Coin: ${currentCoin.toUpperCase()}`);
+        }
+
+        function stopMining() {
+            if (miningInterval) {
+                clearInterval(miningInterval);
+                hashRate = 0;
+                profit = 0;
+                energyUsage = 0;
+                updateDashboard();
+                logConsole('Mining stopped');
+            }
+        }
+
+        function activateBoost() {
+            if (boostPoints >= 100) {
+                boostPoints -= 100;
+                boostMultiplier = 2;
+                logConsole('Boost activated (2x earnings for 5 minutes)');
+                updateDashboard();
+                setTimeout(() => {
+                    boostMultiplier = 1;
+                    logConsole('Boost expired');
+                    updateDashboard();
+                }, 300000);
+            } else {
+                logConsole('Insufficient boost points (need 100)');
+            }
+        }
+
+        function switchPool() {
+            const pool = document.getElementById('poolSelect').value;
+            logConsole(`Switched to ${pool} mining pool`);
+        }
+
+        function addCustomPool() {
+            const customPool = prompt('Enter custom pool URL:');
+            if (customPool) {
+                const option = document.createElement('option');
+                option.value = customPool;
+                option.text = `Custom (${customPool})`;
+                document.getElementById('poolSelect').appendChild(option);
+                logConsole(`Added custom pool: ${customPool}`);
+            }
+        }
+
+        function applyOverclock() {
+            const level = parseInt(document.getElementById('overclock').value);
+            const risk = level > 200 ? 'High' : level > 150 ? 'Medium' : 'Low';
+            document.getElementById('overclockRisk').textContent = risk;
+            logConsole(`Overclock set to ${level}% - Risk: ${risk}`);
+        }
+
+        function resetMonitor() {
+            uptime = 0;
+            temperature = 35;
+            updateDashboard();
+            logConsole('Performance monitor reset');
+        }
+
+        function predictMarket() {
+            logConsole('Analyzing market trends...');
+            setTimeout(() => {
+                const trend = Math.random() > 0.7 ? 'Bullish' : Math.random() < 0.3 ? 'Bearish' : 'Neutral';
+                document.getElementById('marketTrend').textContent = trend;
+                logConsole(`Market prediction: ${trend}`);
+            }, 2000);
+        }
+
+        function optimizeEnergy() {
+            const mode = document.getElementById('energyMode').value;
+            energyUsage *= (mode === 'eco' ? 0.8 : mode === 'max' ? 1.2 : 1);
+            logConsole(`Energy optimized: ${mode} mode - Usage: ${energyUsage.toFixed(2)} kW`);
+            updateDashboard();
+        }
+
+        function switchCoin() {
+            currentCoin = document.getElementById('coinSelect').value;
+            logConsole(`Switched to mining ${currentCoin.toUpperCase()}`);
+        }
+
+        function analyzeNetwork() {
+            logConsole('Analyzing network conditions...');
+            setTimeout(() => {
+                const latency = Math.floor(Math.random() * 50) + 10;
+                logConsole(`Network: Latency ${latency}ms, Stability ${Math.floor(Math.random() * 10 + 90)}%`);
+            }, 1500);
+        }
+
+        function runDiagnostics() {
+            logConsole('Running system diagnostics...');
+            setTimeout(() => {
+                logConsole(`Diagnostics: Temp ${temperature.toFixed(1)}°C, Status: ${temperature > 80 ? 'Warning' : 'Optimal'}`);
+            }, 2000);
+        }
+
+        function showStatsChart() {
+            document.getElementById('statsModal').classList.add('active');
+            logConsole('Displaying mining statistics chart');
+            // Simulated chart data (actual charting would require a library)
+            document.getElementById('statsChart').innerHTML = 'Profit/Hour Trend (Simulated)';
+        }
+
+        function testApi() {
+            const endpoint = document.getElementById('apiEndpoint').value;
+            logConsole(`Testing API: ${endpoint}`);
+            setTimeout(() => {
+                logConsole(`API Response: Status 200 (Simulated)`);
+            }, 1000);
+        }
+
+        function injectScript() {
+            const script = document.getElementById('scriptInput').value;
+            try {
+                eval(script);
+                logConsole('Script injected successfully');
+            } catch (e) {
+                logConsole(`Script error: ${e.message}`);
+            }
+        }
+
+        function runStressTest() {
+            const level = parseInt(document.getElementById('stressLevel').value);
+            logConsole(`Running stress test at level ${level}...`);
+            setTimeout(() => {
+                temperature += level * 2;
+                logConsole(`Stress test complete: Temp ${temperature.toFixed(1)}°C`);
+                updateDashboard();
+            }, 3000);
+        }
+
+        function executeCommand() {
+            const cmd = document.getElementById('customCommand').value;
+            logConsole(`Executing: ${cmd}`);
+            document.getElementById('customCommand').value = '';
+        }
+
+        function logConsole(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleMessages.push(`[${timestamp}] ${message}`);
+            if (consoleMessages.length > 50) consoleMessages.shift();
+            document.getElementById('console').innerHTML = consoleMessages.join('<br>');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        function show2FAModal() {
+            document.getElementById('twoFAModal').classList.add('active');
+        }
+
+        function verify2FA() {
+            const code = document.getElementById('twoFACode').value;
+            if (code) {
+                logConsole('2FA verified (simulated)');
+                hideModal('twoFAModal');
+            } else {
+                logConsole('Invalid 2FA code');
+            }
+        }
+
+        function hideModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Event Listeners
+        document.getElementById('theme').addEventListener('change', (e) => {
+            switch(e.target.value) {
+                case 'dark':
+                    document.body.style.background = '#1e272e';
+                    break;
+                case 'neon':
+                    document.body.style.background = 'linear-gradient(145deg, #ff00ff 0%, #00ffff 100%)';
+                    break;
+                default:
+                    document.body.style.background = 'linear-gradient(145deg, #1e272e 0%, #485460 100%)';
+            }
+            logConsole(`Theme changed to ${e.target.value}`);
+        });
+
+        document.getElementById('soundAlerts').addEventListener('change', (e) => {
+            logConsole(`Sound alerts ${e.target.checked ? 'enabled' : 'disabled'}`);
+        });
+
+        document.getElementById('debugMode').addEventListener('change', (e) => {
+            logConsole(`Debug mode ${e.target.checked ? 'on' : 'off'}`);
+        });
+
+        document.getElementById('autoUpdate').addEventListener('change', (e) => {
+            logConsole(`Auto-update ${e.target.checked ? 'enabled' : 'disabled'}`);
+        });
+
+        document.getElementById('animations').addEventListener('change', (e) => {
+            document.body.style.transition = e.target.checked ? 'all 0.3s ease' : 'none';
+            logConsole(`Animations ${e.target.checked ? 'enabled' : 'disabled'}`);
+        });
+
+        function testPing() {
+            logConsole('Testing network ping...');
+            setTimeout(() => {
+                logConsole(`Ping result: ${Math.floor(Math.random() * 50) + 10}ms`);
+            }, 1000);
+        }
+
+        // Custom server dynamic updates
+        ['customCpus', 'customRam', 'customHash', 'customGpus', 'customStorage'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateCustomServer);
+        });
+
+        // Initial setup
+        logConsole('Welcome to BitFlash Mining Portal Pro v4.0 Quantum');
+        updateCustomServer();
+    </script>
+</body>
+</html>
